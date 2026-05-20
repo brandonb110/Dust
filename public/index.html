@@ -308,7 +308,9 @@ function buildPlayerNetList(per, entry){
     const entryTotal = row.spots.length * entry;
     const net = (row.wins * per) - entryTotal;
 
-    row.spots.forEach((spot) => {
+    row.spots
+  .sort((a, b) => a - b)
+  .forEach((spot) => {
 
       html += `
       <div class="netRow">
