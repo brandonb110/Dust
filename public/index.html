@@ -27,13 +27,13 @@ th{background:#1f2937}
 .streakBox .big{font-size:30px;font-weight:bold;color:#facc15;margin:8px 0}
 .streakBox .name{font-size:22px;font-weight:bold;color:#60a5fa}
 .netList{background:#020617;border:1px solid #374151;border-radius:10px;padding:10px;margin-top:10px}
-.netRow{display:grid;grid-template-columns:42px 1fr 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
+.netRow{display:grid;grid-template-columns:70px 1fr 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .netRow:last-child{border-bottom:0}
 .netNum{font-weight:bold;color:#60a5fa}
 .netName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .netAmount{text-align:right}
 .copyButton{background:#22c55e;color:#020617;font-weight:900;font-size:15px;padding:12px;margin:10px 0 12px 0;border-radius:10px;width:100%}
-@media(max-width:700px){table{font-size:13px}.netRow{grid-template-columns:34px 1fr 80px;font-size:14px}}
+@media(max-width:700px){table{font-size:13px}.netRow{grid-template-columns:58px 1fr 80px;font-size:14px}}
 </style>
 </head>
 <body>
@@ -87,7 +87,7 @@ th{background:#1f2937}
 <thead>
 <tr>
 <th>Player</th>
-<th>Spots</th>
+<th>#</th>
 <th>Wins</th>
 <th>Net</th>
 <th>Best Streak</th>
@@ -108,7 +108,7 @@ COPY PLAYER NET LIST
 
 <div class="netList" id="playerList">
 <div class="netRow">
-<div class="netNum">1.</div>
+<div class="netNum">#</div>
 <div class="netName">No player yet</div>
 <div class="netAmount">$0.00</div>
 </div>
@@ -150,6 +150,47 @@ async function pullResults(){
   }
 }
 
+function getCombinedPlayerRows(){
+  const playerData = {};
+
+  for(let spot = 1; spot <= 10; spot++){
+    const name = initialSpots[spot] || `#${spot}`;
+
+    if(!playerData[name]){
+      playerData[name] = {
+        name: name,
+        spots: [],
+        wins: 0,
+        best: 0,
+        firstSpot: spot
+      };
+    }
+
+    playerData[name].spots.push(spot);
+    playerData[name].firstSpot = Math.min(playerData[name].firstSpot, spot);
+  }
+
+  importedRounds.forEach(roundObj => {
+    const spot = Number(roundObj.spot);
+    const name = initialSpots[spot] || roundObj.winner || roundObj.name || `#${spot}`;
+
+    if(!playerData[name]){
+      playerData[name] = {
+        name: name,
+        spots: [spot],
+        wins: 0,
+        best: 0,
+        firstSpot: spot || 999
+      };
+    }
+
+    playerData[name].wins++;
+  });
+
+  return Object.values(playerData)
+    .sort((a,b) => a.firstSpot - b.firstSpot);
+}
+
 function calculateResults(){
   const per = Number(document.getElementById("perwin").value || 0);
   const entry = Number(document.getElementById("entry").value || 0);
@@ -157,18 +198,20 @@ function calculateResults(){
   const playerData = {};
 
   for(let spot = 1; spot <= 10; spot++){
-    const name = initialSpots[spot] || "No player";
+    const name = initialSpots[spot] || `#${spot}`;
 
     if(!playerData[name]){
       playerData[name] = {
         name: name,
         spots: [],
         wins: 0,
-        best: 0
+        best: 0,
+        firstSpot: spot
       };
     }
 
     playerData[name].spots.push(spot);
+    playerData[name].firstSpot = Math.min(playerData[name].firstSpot, spot);
   }
 
   let currentName = "";
@@ -182,14 +225,15 @@ function calculateResults(){
 
   importedRounds.forEach((roundObj, index) => {
     const spot = Number(roundObj.spot);
-    const name = initialSpots[spot] || roundObj.winner || roundObj.name || "Unknown";
+    const name = initialSpots[spot] || roundObj.winner || roundObj.name || `#${spot}`;
 
     if(!playerData[name]){
       playerData[name] = {
         name: name,
         spots: [spot],
         wins: 0,
-        best: 0
+        best: 0,
+        firstSpot: spot || 999
       };
     }
 
@@ -216,8 +260,7 @@ function calculateResults(){
   });
 
   const rows = Object.values(playerData)
-    .filter(row => row.name !== "No player")
-    .sort((a,b) => b.wins - a.wins || a.name.localeCompare(b.name));
+    .sort((a,b) => b.wins - a.wins || a.firstSpot - b.firstSpot);
 
   document.getElementById("body").innerHTML =
     rows.length
@@ -256,58 +299,25 @@ function calculateResults(){
 
 function buildPlayerNetList(per, entry){
   const playerList = document.getElementById("playerList");
-  const playerData = {};
-
-  for(let spot = 1; spot <= 10; spot++){
-    const name = initialSpots[spot] || "No player";
-
-    if(!playerData[name]){
-      playerData[name] = {
-        name: name,
-        spots: [],
-        wins: 0
-      };
-    }
-
-    playerData[name].spots.push(spot);
-  }
-
-  importedRounds.forEach(roundObj => {
-    const spot = Number(roundObj.spot);
-    const name = initialSpots[spot] || roundObj.winner || roundObj.name || "Unknown";
-
-    if(!playerData[name]){
-      playerData[name] = {
-        name: name,
-        spots: [spot],
-        wins: 0
-      };
-    }
-
-    playerData[name].wins++;
-  });
-
-  const rows = Object.values(playerData)
-    .filter(row => row.name !== "No player")
-    .sort((a,b) => b.wins - a.wins || a.name.localeCompare(b.name));
+  const rows = getCombinedPlayerRows();
 
   let html = "";
 
-  rows.forEach((row, index) => {
+  rows.forEach(row => {
     const entryTotal = row.spots.length * entry;
     const net = (row.wins * per) - entryTotal;
 
     html += `
     <div class="netRow">
-      <div class="netNum">${index + 1}.</div>
-      <div class="netName">${row.name} (${row.spots.join(", ")})</div>
+      <div class="netNum">${row.spots.join(", ")}</div>
+      <div class="netName">${row.name}</div>
       <div class="netAmount ${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</div>
     </div>`;
   });
 
   playerList.innerHTML = html || `
     <div class="netRow">
-      <div class="netNum">1.</div>
+      <div class="netNum">#</div>
       <div class="netName">No player yet</div>
       <div class="netAmount">$0.00</div>
     </div>`;
@@ -317,47 +327,14 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
 
   const per = Number(document.getElementById("perwin").value || 0);
   const entry = Number(document.getElementById("entry").value || 0);
-  const playerData = {};
-
-  for(let spot = 1; spot <= 10; spot++){
-    const name = initialSpots[spot] || "No player";
-
-    if(!playerData[name]){
-      playerData[name] = {
-        name: name,
-        spots: [],
-        wins: 0
-      };
-    }
-
-    playerData[name].spots.push(spot);
-  }
-
-  importedRounds.forEach(roundObj => {
-    const spot = Number(roundObj.spot);
-    const name = initialSpots[spot] || roundObj.winner || roundObj.name || "Unknown";
-
-    if(!playerData[name]){
-      playerData[name] = {
-        name: name,
-        spots: [spot],
-        wins: 0
-      };
-    }
-
-    playerData[name].wins++;
-  });
-
-  const rows = Object.values(playerData)
-    .filter(row => row.name !== "No player")
-    .sort((a,b) => b.wins - a.wins || a.name.localeCompare(b.name));
+  const rows = getCombinedPlayerRows();
 
   let text = "DUST Jackpot Results\n\n";
 
-  rows.forEach((row, index) => {
+  rows.forEach(row => {
     const entryTotal = row.spots.length * entry;
     const net = (row.wins * per) - entryTotal;
-    text += `${index + 1}. ${row.name} (${row.spots.join(", ")}) - $${net.toFixed(2)}\n`;
+    text += `${row.spots.join(", ")}. ${row.name} - $${net.toFixed(2)}\n`;
   });
 
   try{
