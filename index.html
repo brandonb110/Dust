@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cash Game Calculator</title>
+<style>
+body{margin:0;background:#0f172a;color:white;font-family:Arial,Helvetica,sans-serif}
+header{background:#111827;padding:18px;text-align:center;border-bottom:1px solid #374151}
+h1{margin:0;color:#60a5fa}
+.wrap{max-width:1000px;margin:20px auto;padding:0 14px}
+.card{background:#111827;border:1px solid #374151;border-radius:14px;padding:16px;margin-bottom:16px}
+label{display:block;margin-top:12px;font-weight:bold}
+input,textarea,button{width:100%;padding:12px;margin-top:8px;border-radius:10px;border:1px solid #374151;font-size:16px;box-sizing:border-box}
+input,textarea{background:#020617;color:white}
+textarea{min-height:140px}
+button{background:#2563eb;color:white;font-weight:bold;border:0}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{border-bottom:1px solid #374151;padding:10px;text-align:center}
+th{background:#1f2937}
+.good{color:#22c55e;font-weight:bold}.bad{color:#ef4444;font-weight:bold}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:700px){.grid{grid-template-columns:1fr}table{font-size:13px}}
+</style>
+</head>
+<body>
+<header><h1>Cash Game Calculator</h1></header>
+<div class="wrap">
+<div class="card">
+<h2>Game Setup</h2>
+<label>RANDOM.ORG Verify Link</label>
+<input id="verify" placeholder="Paste verify link here">
+<div class="grid">
+<div><label>$ Per Win</label><input id="perwin" type="number" value="10"></div>
+<div><label>Entry Fee</label><input id="entry" type="number" value="25"></div>
+<div><label>Total Rounds</label><input id="rounds" type="number" value="27"></div>
+</div>
+<label>Round Winners</label>
+<textarea id="winners" placeholder="Paste one winner per line"></textarea>
+<button onclick="calc()">Calculate Results</button>
+<button onclick="example()">Load Example</button>
+</div>
+
+<div class="card">
+<h2>Results</h2>
+<table>
+<thead><tr><th>Player</th><th>Wins</th><th>Gross</th><th>Entry</th><th>Net</th><th>Best Streak</th></tr></thead>
+<tbody id="body"><tr><td colspan="6">No results yet</td></tr></tbody>
+</table>
+</div>
+</div>
+<script>
+function calc(){
+ const per=Number(document.getElementById('perwin').value||0);
+ const entry=Number(document.getElementById('entry').value||0);
+ const names=document.getElementById('winners').value.split(/\n+/).map(x=>x.trim()).filter(Boolean);
+ const data={}; let cur='', streak=0;
+ names.forEach(n=>{
+   if(!data[n]) data[n]={wins:0,best:0};
+   data[n].wins++;
+   if(n===cur){streak++;}else{cur=n;streak=1;}
+   data[n].best=Math.max(data[n].best,streak);
+ });
+ const rows=Object.entries(data).sort((a,b)=>b[1].wins-a[1].wins);
+ document.getElementById('body').innerHTML = rows.length ? rows.map(([n,d])=>{
+   const gross=d.wins*per, net=gross-entry;
+   return `<tr><td>${n}</td><td>${d.wins}</td><td>$${gross.toFixed(2)}</td><td>$${entry.toFixed(2)}</td><td class="${net>=0?'good':'bad'}">$${net.toFixed(2)}</td><td>${d.best}</td></tr>`;
+ }).join('') : '<tr><td colspan="6">No results yet</td></tr>';
+}
+function example(){
+ document.getElementById('verify').value='https://giveaways.random.org/verify/nocvoa';
+ document.getElementById('winners').value='Jason Park\\nBrandon Baker\\nJason Park\\nMike Williams\\nJason Park\\nJason Park\\nJason Park';
+ calc();
+}
+</script>
+</body>
+</html>
