@@ -46,6 +46,17 @@ font-size:15px;
 .netNum{font-weight:bold;color:#60a5fa}
 .netName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .netAmount{text-align:right}
+.copyButton{
+background:#22c55e;
+color:#020617;
+font-weight:900;
+font-size:15px;
+padding:12px;
+margin:10px 0 12px 0;
+border-radius:10px;
+width:100%;
+}
+
 @media(max-width:700px){
 table{font-size:13px}
 .netRow{grid-template-columns:34px 1fr 80px;font-size:14px}
@@ -116,6 +127,11 @@ table{font-size:13px}
 
 <div class="card">
 <h2>Player Net List</h2>
+
+<button id="copyBtn" type="button" class="copyButton">
+COPY PLAYER NET LIST
+</button>
+
 <div class="netList" id="playerList">
 <div class="netRow">
 <div class="netNum">1.</div>
@@ -254,6 +270,36 @@ function buildPlayerNetList(per, entry){
 
   playerList.innerHTML = html;
 }
+
+
+document.getElementById("copyBtn").addEventListener("click", async () => {
+
+  const per = Number(document.getElementById("perwin").value || 0);
+  const entry = Number(document.getElementById("entry").value || 0);
+
+  let text = "DUST Jackpot Results\n\n";
+
+  for(let spot = 1; spot <= 10; spot++){
+    const name = initialSpots[spot] || "No player";
+    const wins = importedRounds.filter(r => Number(r.spot) === spot).length;
+    const net = (wins * per) - entry;
+    text += `${spot}. ${name} - $${net.toFixed(2)}\n`;
+  }
+
+  try{
+    await navigator.clipboard.writeText(text);
+
+    const btn = document.getElementById("copyBtn");
+    btn.textContent = "COPIED!";
+    setTimeout(() => {
+      btn.textContent = "COPY PLAYER NET LIST";
+    }, 1500);
+
+  }catch(e){
+    alert("Copy failed. Try highlighting the list manually.");
+  }
+});
+
 
 document.getElementById("pullBtn").addEventListener("click", pullResults);
 </script>
