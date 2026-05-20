@@ -304,15 +304,28 @@ function buildPlayerNetList(per, entry){
   let html = "";
 
   rows.forEach(row => {
+
     const entryTotal = row.spots.length * entry;
     const net = (row.wins * per) - entryTotal;
 
-    html += `
-    <div class="netRow">
-      <div class="netNum">${row.spots.join(", ")}</div>
-      <div class="netName">${row.name}</div>
-      <div class="netAmount ${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</div>
-    </div>`;
+    row.spots.forEach((spot) => {
+
+      html += `
+      <div class="netRow">
+
+        <div class="netNum">${spot}</div>
+
+        <div class="netName">
+          ${row.name}
+        </div>
+
+        <div class="netAmount ${net >= 0 ? "good" : "bad"}">
+          $${net.toFixed(2)}
+        </div>
+
+      </div>`;
+    });
+
   });
 
   playerList.innerHTML = html || `
