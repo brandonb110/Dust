@@ -3,27 +3,122 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dust Jackpot Calculator</title>
+<title>DUST Jackpot Calculator</title>
 <style>
-body{margin:0;background:#0f172a;color:white;font-family:Arial,Helvetica,sans-serif}
-header{background:#111827;padding:18px;text-align:center;border-bottom:1px solid #374151}
-h1{margin:0;color:#60a5fa}
-.wrap{max-width:1050px;margin:20px auto;padding:0 14px}
-.card{background:#111827;border:1px solid #374151;border-radius:14px;padding:16px;margin-bottom:16px}
-label{display:block;margin-top:12px;font-weight:bold}
-input,button{width:100%;padding:12px;margin-top:8px;border-radius:10px;border:1px solid #374151;font-size:16px;box-sizing:border-box}
-input{background:#020617;color:white}
-button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
-table{width:100%;border-collapse:collapse;margin-top:15px}
-th,td{border-bottom:1px solid #374151;padding:10px;text-align:center}
-th{background:#1f2937}
-.good{color:#22c55e;font-weight:bold}
-.bad{color:#ef4444;font-weight:bold}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.notice{color:#cbd5e1;font-size:14px;line-height:1.45}
-.streakBox{background:#020617;border:1px solid #374151;border-radius:12px;padding:15px;margin-top:10px;text-align:center}
-.streakBox .big{font-size:30px;font-weight:bold;color:#facc15;margin:8px 0}
-.streakBox .name{font-size:22px;font-weight:bold;color:#60a5fa}
+body{
+margin:0;
+background:#0f172a;
+color:white;
+font-family:Arial,Helvetica,sans-serif
+}
+header{
+background:#111827;
+padding:12px;
+text-align:center;
+border-bottom:1px solid #374151
+}
+h1{
+margin:0;
+color:#60a5fa;
+font-size:28px
+}
+.wrap{
+max-width:1050px;
+margin:20px auto;
+padding:0 14px
+}
+.card{
+background:#111827;
+border:1px solid #374151;
+border-radius:14px;
+padding:16px;
+margin-bottom:16px
+}
+.compactCard{
+max-width:700px;
+margin:0 auto 16px auto;
+}
+label{
+display:block;
+margin-top:4px;
+font-weight:bold;
+font-size:12px
+}
+input,button{
+width:100%;
+padding:8px;
+margin-top:4px;
+border-radius:7px;
+border:1px solid #374151;
+font-size:13px;
+box-sizing:border-box
+}
+input{
+background:#020617;
+color:white
+}
+button{
+background:#2563eb;
+color:white;
+font-weight:bold;
+border:0;
+cursor:pointer
+}
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px
+}
+th,td{
+border-bottom:1px solid #374151;
+padding:10px;
+text-align:center
+}
+th{
+background:#1f2937
+}
+.good{
+color:#22c55e;
+font-weight:bold
+}
+.bad{
+color:#ef4444;
+font-weight:bold
+}
+.grid{
+display:flex;
+gap:8px;
+align-items:flex-end;
+}
+
+.grid > div{
+flex:1;
+min-width:0;
+}
+.notice{
+color:#cbd5e1;
+font-size:14px;
+line-height:1.45
+}
+.streakBox{
+background:#020617;
+border:1px solid #374151;
+border-radius:12px;
+padding:15px;
+margin-top:10px;
+text-align:center
+}
+.streakBox .big{
+font-size:30px;
+font-weight:bold;
+color:#facc15;
+margin:8px 0
+}
+.streakBox .name{
+font-size:22px;
+font-weight:bold;
+color:#60a5fa
+}
 .playerLine{
 background:#020617;
 border:1px solid #374151;
@@ -41,29 +136,46 @@ color:#60a5fa;
 margin-right:8px;
 }
 @media(max-width:700px){
-.grid{grid-template-columns:1fr}
-table{font-size:13px}
-.playerLine{flex-direction:column;gap:6px;text-align:center}
+.grid{
+grid-template-columns:1fr
+}
+table{
+font-size:13px
+}
+.playerLine{
+flex-direction:column;
+gap:6px;
+text-align:center
+}
 }
 </style>
 </head>
 <body>
-<header><h1>Dust Jackpot Calculator</h1></header>
+
+<header>
+<h1>DUST Jackpot Calculator</h1>
+</header>
 
 <div class="wrap">
 
-<div class="card">
+<div class="card compactCard">
+
 <h2>RANDOM.ORG Import</h2>
 
 <label>Verify Link</label>
+
 <input id="verify" placeholder="https://giveaways.random.org/verify/xxxxx">
 
-<button id="pullBtn" type="button">Pull Results From Verify Link</button>
+<button id="pullBtn" type="button">
+Pull Results From Verify Link
+</button>
 
-<div class="card">
-<h2>Game Setup</h2>
+<p id="status" class="notice">
+Paste the RANDOM.ORG verify link and tap the button.
+</p>
 
-<div class="grid">
+<div class="grid compactGrid">
+
 <div>
 <label>$ Per Win</label>
 <input id="perwin" type="number" value="50">
@@ -78,24 +190,31 @@ table{font-size:13px}
 <label>Total Rounds</label>
 <input id="rounds" type="number" value="27">
 </div>
+
 </div>
 
-<button id="calcBtn" type="button">Recalculate Results</button>
 </div>
 
 <div class="card">
+
 <h2>Most Consecutive Rounds Hit</h2>
+
 <div class="streakBox">
 <div class="name" id="streakName">No results yet</div>
 <div class="big" id="streakCount">0 in a row</div>
-<div class="notice" id="streakRounds">Import results to see the longest streak.</div>
+<div class="notice" id="streakRounds">
+Import results to see the longest streak.
 </div>
+</div>
+
 </div>
 
 <div class="card">
+
 <h2>Results</h2>
 
 <table>
+
 <thead>
 <tr>
 <th>Player</th>
@@ -108,10 +227,13 @@ table{font-size:13px}
 <tbody id="body">
 <tr><td colspan="4">No results yet</td></tr>
 </tbody>
+
 </table>
+
 </div>
 
 <div class="card">
+
 <h2>Player Net List</h2>
 
 <div id="playerList">
@@ -122,6 +244,7 @@ table{font-size:13px}
 </div>
 
 </div>
+
 </div>
 
 </div>
@@ -130,12 +253,14 @@ table{font-size:13px}
 let importedWinners = [];
 
 async function pullResults(){
+
   const url = document.getElementById("verify").value.trim();
   const status = document.getElementById("status");
 
   status.textContent = "Loading RANDOM.ORG verify page...";
 
   try{
+
     const res = await fetch("/api/verify?url=" + encodeURIComponent(url));
     const data = await res.json();
 
@@ -146,23 +271,30 @@ async function pullResults(){
 
     importedWinners = data.winners || [];
 
-    status.textContent = "Imported " + importedWinners.length + " rounds successfully.";
+    status.textContent =
+      "Imported " + importedWinners.length + " rounds successfully.";
 
     calculateResults();
 
   }catch(e){
+
     status.textContent = "Import failed.";
+
   }
 }
 
 function calculateResults(){
 
-  const per = Number(document.getElementById("perwin").value || 0);
-  const entry = Number(document.getElementById("entry").value || 0);
+  const per =
+    Number(document.getElementById("perwin").value || 0);
+
+  const entry =
+    Number(document.getElementById("entry").value || 0);
 
   const names = importedWinners;
 
   const data = {};
+
   let current = "";
   let streak = 0;
   let streakStart = 0;
@@ -220,7 +352,9 @@ function calculateResults(){
       <tr>
         <td>${name}</td>
         <td>${d.wins}</td>
-        <td class="${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</td>
+        <td class="${net >= 0 ? "good" : "bad"}">
+          $${net.toFixed(2)}
+        </td>
         <td>${d.best}</td>
       </tr>
       `;
@@ -228,15 +362,21 @@ function calculateResults(){
     : '<tr><td colspan="4">No results yet</td></tr>';
 
   if(topStreakCount > 0){
-    document.getElementById("streakName").textContent = topStreakName;
-    document.getElementById("streakCount").textContent = topStreakCount + " in a row";
+
+    document.getElementById("streakName").textContent =
+      topStreakName;
+
+    document.getElementById("streakCount").textContent =
+      topStreakCount + " in a row";
+
     document.getElementById("streakRounds").textContent =
       topStreakStart === topStreakEnd
       ? "Round " + topStreakStart
       : "Rounds " + topStreakStart + " - " + topStreakEnd;
   }
 
-  const playerList = document.getElementById("playerList");
+  const playerList =
+    document.getElementById("playerList");
 
   let listHTML = "";
 
@@ -249,6 +389,7 @@ function calculateResults(){
 
     listHTML += `
     <div class="playerLine">
+
       <div>
         <span class="playerNum">${index + 1}.</span>
         ${name}
@@ -257,6 +398,7 @@ function calculateResults(){
       <div class="${net >= 0 ? "good" : "bad"}">
         $${net.toFixed(2)}
       </div>
+
     </div>
     `;
   });
@@ -269,8 +411,8 @@ function calculateResults(){
   `;
 }
 
-document.getElementById("pullBtn").addEventListener("click", pullResults);
-document.getElementById("calcBtn").addEventListener("click", calculateResults);
+document.getElementById("pullBtn")
+  .addEventListener("click", pullResults);
 </script>
 
 </body>
