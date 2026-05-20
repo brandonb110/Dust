@@ -21,46 +21,19 @@ th{background:#1f2937}
 .good{color:#22c55e;font-weight:bold}
 .bad{color:#ef4444;font-weight:bold}
 .grid{display:flex;gap:8px;align-items:flex-end}
-.grid > div{flex:1;min-width:0}
+.grid>div{flex:1;min-width:0}
 .notice{color:#cbd5e1;font-size:14px;line-height:1.45}
 .streakBox{background:#020617;border:1px solid #374151;border-radius:12px;padding:15px;margin-top:10px;text-align:center}
 .streakBox .big{font-size:30px;font-weight:bold;color:#facc15;margin:8px 0}
 .streakBox .name{font-size:22px;font-weight:bold;color:#60a5fa}
-.netList{
-background:#020617;
-border:1px solid #374151;
-border-radius:10px;
-padding:10px;
-margin-top:10px;
-}
-.netRow{
-display:grid;
-grid-template-columns:42px 1fr 90px;
-gap:8px;
-align-items:center;
-padding:8px 4px;
-border-bottom:1px solid #1f2937;
-font-size:15px;
-}
+.netList{background:#020617;border:1px solid #374151;border-radius:10px;padding:10px;margin-top:10px}
+.netRow{display:grid;grid-template-columns:42px 1fr 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .netRow:last-child{border-bottom:0}
 .netNum{font-weight:bold;color:#60a5fa}
 .netName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .netAmount{text-align:right}
-.copyButton{
-background:#22c55e;
-color:#020617;
-font-weight:900;
-font-size:15px;
-padding:12px;
-margin:10px 0 12px 0;
-border-radius:10px;
-width:100%;
-}
-
-@media(max-width:700px){
-table{font-size:13px}
-.netRow{grid-template-columns:34px 1fr 80px;font-size:14px}
-}
+.copyButton{background:#22c55e;color:#020617;font-weight:900;font-size:15px;padding:12px;margin:10px 0 12px 0;border-radius:10px;width:100%}
+@media(max-width:700px){table{font-size:13px}.netRow{grid-template-columns:34px 1fr 80px;font-size:14px}}
 </style>
 </head>
 <body>
@@ -100,6 +73,7 @@ table{font-size:13px}
 </div>
 
 <div class="card">
+<h2>Most Consecutive Rounds Hit</h2>
 <div class="streakBox">
 <div class="name" id="streakName">No results yet</div>
 <div class="big" id="streakCount">0 in a row</div>
@@ -112,7 +86,7 @@ table{font-size:13px}
 <table>
 <thead>
 <tr>
-<th>Player</th>
+<th># / Player</th>
 <th>Wins</th>
 <th>Net</th>
 <th>Best Streak</th>
@@ -178,73 +152,96 @@ async function pullResults(){
 function calculateResults(){
   const per = Number(document.getElementById("perwin").value || 0);
   const entry = Number(document.getElementById("entry").value || 0);
-  const names = importedWinners;
 
-  const data = {};
-  let current = "";
+  const spotData = {};
+
+  for(let spot = 1; spot <= 10; spot++){
+    spotData[spot] = {
+      spot: spot,
+      name: initialSpots[spot] || "No player",
+      wins: 0,
+      best: 0
+    };
+  }
+
+  let currentSpot = null;
   let streak = 0;
   let streakStart = 0;
 
+  let topStreakSpot = null;
   let topStreakName = "";
   let topStreakCount = 0;
   let topStreakStart = 0;
   let topStreakEnd = 0;
 
-  names.forEach((name, index) => {
-    if(!data[name]){
-      data[name] = {wins:0,best:0};
+  importedRounds.forEach((roundObj, index) => {
+    const spot = Number(roundObj.spot);
+
+    if(!spotData[spot]){
+      spotData[spot] = {
+        spot: spot,
+        name: roundObj.winner || roundObj.name || "Unknown",
+        wins: 0,
+        best: 0
+      };
     }
 
-    data[name].wins++;
+    spotData[spot].wins++;
 
-    if(name === current){
+    if(spot === currentSpot){
       streak++;
     } else {
-      current = name;
+      currentSpot = spot;
       streak = 1;
       streakStart = index + 1;
     }
 
-    if(streak > data[name].best){
-      data[name].best = streak;
+    if(streak > spotData[spot].best){
+      spotData[spot].best = streak;
     }
 
     if(streak > topStreakCount){
-      topStreakName = name;
+      topStreakSpot = spot;
+      topStreakName = spotData[spot].name;
       topStreakCount = streak;
       topStreakStart = streakStart;
       topStreakEnd = index + 1;
     }
   });
 
-  const rows = Object.keys(data)
-    .map(name => [name, data[name]])
-    .sort((a,b) => b[1].wins - a[1].wins);
+  const rows = Object.values(spotData)
+    .sort((a,b) => b.wins - a.wins || a.spot - b.spot);
 
   document.getElementById("body").innerHTML =
     rows.length
     ? rows.map(row => {
-      const name = row[0];
-      const d = row[1];
-      const net = (d.wins * per) - entry;
+      const net = (row.wins * per) - entry;
 
       return `
       <tr>
-        <td>${name}</td>
-        <td>${d.wins}</td>
+        <td>${row.spot}. ${row.name}</td>
+        <td>${row.wins}</td>
         <td class="${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</td>
-        <td>${d.best}</td>
+        <td>${row.best}</td>
       </tr>`;
     }).join("")
     : '<tr><td colspan="4">No results yet</td></tr>';
 
   if(topStreakCount > 0){
-    document.getElementById("streakName").textContent = topStreakName;
-    document.getElementById("streakCount").textContent = topStreakCount + " in a row";
+    document.getElementById("streakName").textContent =
+      topStreakSpot + ". " + topStreakName;
+
+    document.getElementById("streakCount").textContent =
+      topStreakCount + " in a row";
+
     document.getElementById("streakRounds").textContent =
       topStreakStart === topStreakEnd
       ? "Round " + topStreakStart
       : "Rounds " + topStreakStart + " - " + topStreakEnd;
+  } else {
+    document.getElementById("streakName").textContent = "No results yet";
+    document.getElementById("streakCount").textContent = "0 in a row";
+    document.getElementById("streakRounds").textContent = "Import results to see the longest streak.";
   }
 
   buildPlayerNetList(per, entry);
@@ -269,7 +266,6 @@ function buildPlayerNetList(per, entry){
 
   playerList.innerHTML = html;
 }
-
 
 document.getElementById("copyBtn").addEventListener("click", async () => {
 
@@ -298,7 +294,6 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
     alert("Copy failed. Try highlighting the list manually.");
   }
 });
-
 
 document.getElementById("pullBtn").addEventListener("click", pullResults);
 </script>
