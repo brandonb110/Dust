@@ -6,12 +6,33 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.static("public"));
 
-function cleanWinner(line) {
-  return line
-    .replace(/^\s*\d+\.\s*/, "")      // removes placement like "1."
-    .replace(/^\s*\d+\.\s*/, "")      // removes entry number like "5."
-    .replace(/\s+/g, " ")
-    .trim();
+function parseResultLine(line) {
+  const cleaned = line.replace(/\s+/g, " ").trim();
+
+  // Common RANDOM.ORG format:
+  // 1. 5. Jason Park
+  // placement = 1, spot = 5, name = Jason Park
+  let match = cleaned.match(/^(\d+)\.\s+(\d+)\.\s+(.+)$/);
+  if (match) {
+    return {
+      placement: Number(match[1]),
+      spot: Number(match[2]),
+      name: match[3].trim()
+    };
+  }
+
+  // Fallback:
+  // 1. Jason Park
+  match = cleaned.match(/^(\d+)\.\s+(.+)$/);
+  if (match) {
+    return {
+      placement: Number(match[1]),
+      spot: null,
+      name: match[2].trim()
+    };
+  }
+
+  return null;
 }
 
 app.get("/api/verify", async (req, res) => {
@@ -44,28 +65,47 @@ app.get("/api/verify", async (req, res) => {
 
     const winners = [];
     const rounds = [];
+    let initialSpots = {};
 
     for (let i = 0; i < lines.length; i++) {
       const roundMatch = lines[i].match(/Result of Round #(\d+)/i);
 
       if (roundMatch) {
         const roundNumber = Number(roundMatch[1]);
+        const roundEntries = [];
 
-        // The winner is the #1 result immediately after the round heading.
         for (let j = i + 1; j < lines.length; j++) {
           const nextRound = lines[j].match(/Result of Round #(\d+)/i);
           if (nextRound) break;
 
-          if (/^1\.\s+/.test(lines[j])) {
-            const winner = cleanWinner(lines[j]);
+          const parsed = parseResultLine(lines[j]);
 
-            winners.push(winner);
+          if (parsed && parsed.placement >= 1 && parsed.placement <= 10) {
+            roundEntries.push(parsed);
+          }
+        }
+
+        if (roundEntries.length > 0) {
+          const winner = roundEntries.find(x => x.placement === 1);
+
+          if (winner) {
+            winners.push(winner.name);
+
             rounds.push({
               round: roundNumber,
-              winner
+              winner: winner.name,
+              spot: winner.spot
             });
+          }
 
-            break;
+          if (Object.keys(initialSpots).length === 0) {
+            roundEntries.forEach(entry => {
+              if (entry.spot !== null && entry.spot >= 1 && entry.spot <= 10) {
+                initialSpots[entry.spot] = entry.name;
+              } else if (entry.placement >= 1 && entry.placement <= 10) {
+                initialSpots[entry.placement] = entry.name;
+              }
+            });
           }
         }
       }
@@ -76,6 +116,7 @@ app.get("/api/verify", async (req, res) => {
       count: winners.length,
       winners,
       rounds,
+      initialSpots,
       rawPreview: bodyText.slice(0, 2000)
     });
   } catch (err) {
