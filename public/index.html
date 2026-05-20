@@ -5,148 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DUST Jackpot Calculator</title>
 <style>
-body{
-margin:0;
-background:#0f172a;
-color:white;
-font-family:Arial,Helvetica,sans-serif
-}
-header{
-background:#111827;
-padding:12px;
-text-align:center;
-border-bottom:1px solid #374151
-}
-h1{
-margin:0;
-color:#60a5fa;
-font-size:28px
-}
-.wrap{
-max-width:1050px;
-margin:20px auto;
-padding:0 14px
-}
-.card{
-background:#111827;
-border:1px solid #374151;
-border-radius:14px;
-padding:16px;
-margin-bottom:16px
-}
-.compactCard{
-max-width:700px;
-margin:0 auto 16px auto;
-}
-label{
-display:block;
-margin-top:4px;
-font-weight:bold;
-font-size:12px
-}
-input,button{
-width:100%;
-padding:8px;
-margin-top:4px;
-border-radius:7px;
-border:1px solid #374151;
-font-size:13px;
-box-sizing:border-box
-}
-input{
-background:#020617;
-color:white
-}
-button{
-background:#2563eb;
-color:white;
-font-weight:bold;
-border:0;
-cursor:pointer
-}
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:15px
-}
-th,td{
-border-bottom:1px solid #374151;
-padding:10px;
-text-align:center
-}
-th{
-background:#1f2937
-}
-.good{
-color:#22c55e;
-font-weight:bold
-}
-.bad{
-color:#ef4444;
-font-weight:bold
-}
-.grid{
-display:flex;
-gap:8px;
-align-items:flex-end;
-}
-
-.grid > div{
-flex:1;
-min-width:0;
-}
-.notice{
-color:#cbd5e1;
-font-size:14px;
-line-height:1.45
-}
-.streakBox{
-background:#020617;
-border:1px solid #374151;
-border-radius:12px;
-padding:15px;
-margin-top:10px;
-text-align:center
-}
-.streakBox .big{
-font-size:30px;
-font-weight:bold;
-color:#facc15;
-margin:8px 0
-}
-.streakBox .name{
-font-size:22px;
-font-weight:bold;
-color:#60a5fa
-}
-.playerLine{
+body{margin:0;background:#0f172a;color:white;font-family:Arial,Helvetica,sans-serif}
+header{background:#111827;padding:12px;text-align:center;border-bottom:1px solid #374151}
+h1{margin:0;color:#60a5fa;font-size:28px}
+.wrap{max-width:1050px;margin:20px auto;padding:0 14px}
+.card{background:#111827;border:1px solid #374151;border-radius:14px;padding:16px;margin-bottom:16px}
+.compactCard{max-width:700px;margin:0 auto 16px auto}
+label{display:block;margin-top:4px;font-weight:bold;font-size:12px}
+input,button{width:100%;padding:8px;margin-top:4px;border-radius:7px;border:1px solid #374151;font-size:13px;box-sizing:border-box}
+input{background:#020617;color:white}
+button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
+table{width:100%;border-collapse:collapse;margin-top:15px}
+th,td{border-bottom:1px solid #374151;padding:10px;text-align:center}
+th{background:#1f2937}
+.good{color:#22c55e;font-weight:bold}
+.bad{color:#ef4444;font-weight:bold}
+.grid{display:flex;gap:8px;align-items:flex-end}
+.grid > div{flex:1;min-width:0}
+.notice{color:#cbd5e1;font-size:14px;line-height:1.45}
+.streakBox{background:#020617;border:1px solid #374151;border-radius:12px;padding:15px;margin-top:10px;text-align:center}
+.streakBox .big{font-size:30px;font-weight:bold;color:#facc15;margin:8px 0}
+.streakBox .name{font-size:22px;font-weight:bold;color:#60a5fa}
+.netList{
 background:#020617;
 border:1px solid #374151;
 border-radius:10px;
-padding:12px;
+padding:10px;
 margin-top:10px;
-display:flex;
-justify-content:space-between;
+}
+.netRow{
+display:grid;
+grid-template-columns:42px 1fr 90px;
+gap:8px;
 align-items:center;
-font-size:16px;
+padding:8px 4px;
+border-bottom:1px solid #1f2937;
+font-size:15px;
 }
-.playerNum{
-font-weight:bold;
-color:#60a5fa;
-margin-right:8px;
-}
+.netRow:last-child{border-bottom:0}
+.netNum{font-weight:bold;color:#60a5fa}
+.netName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.netAmount{text-align:right}
 @media(max-width:700px){
-.grid{
-grid-template-columns:1fr
-}
-table{
-font-size:13px
-}
-.playerLine{
-flex-direction:column;
-gap:6px;
-text-align:center
-}
+table{font-size:13px}
+.netRow{grid-template-columns:34px 1fr 80px;font-size:14px}
 }
 </style>
 </head>
@@ -159,23 +61,16 @@ text-align:center
 <div class="wrap">
 
 <div class="card compactCard">
-
 <h2>RANDOM.ORG Import</h2>
 
 <label>Verify Link</label>
-
 <input id="verify" placeholder="https://giveaways.random.org/verify/xxxxx">
 
-<button id="pullBtn" type="button">
-Pull Results From Verify Link
-</button>
+<button id="pullBtn" type="button">Pull Results From Verify Link</button>
 
-<p id="status" class="notice">
-Paste the RANDOM.ORG verify link and tap the button.
-</p>
+<p id="status" class="notice">Paste the RANDOM.ORG verify link and tap the button.</p>
 
-<div class="grid compactGrid">
-
+<div class="grid">
 <div>
 <label>$ Per Win</label>
 <input id="perwin" type="number" value="50">
@@ -190,31 +85,21 @@ Paste the RANDOM.ORG verify link and tap the button.
 <label>Total Rounds</label>
 <input id="rounds" type="number" value="27">
 </div>
-
 </div>
-
 </div>
 
 <div class="card">
-
 <h2>Most Consecutive Rounds Hit</h2>
-
 <div class="streakBox">
 <div class="name" id="streakName">No results yet</div>
 <div class="big" id="streakCount">0 in a row</div>
-<div class="notice" id="streakRounds">
-Import results to see the longest streak.
+<div class="notice" id="streakRounds">Import results to see the longest streak.</div>
 </div>
-</div>
-
 </div>
 
 <div class="card">
-
 <h2>Results</h2>
-
 <table>
-
 <thead>
 <tr>
 <th>Player</th>
@@ -223,44 +108,37 @@ Import results to see the longest streak.
 <th>Best Streak</th>
 </tr>
 </thead>
-
 <tbody id="body">
 <tr><td colspan="4">No results yet</td></tr>
 </tbody>
-
 </table>
-
 </div>
 
 <div class="card">
-
 <h2>Player Net List</h2>
-
-<div id="playerList">
-
-<div class="playerLine">
-<div><span class="playerNum">1.</span> No player yet</div>
-<div>$0.00</div>
+<div class="netList" id="playerList">
+<div class="netRow">
+<div class="netNum">1.</div>
+<div class="netName">No player yet</div>
+<div class="netAmount">$0.00</div>
 </div>
-
 </div>
-
 </div>
 
 </div>
 
 <script>
 let importedWinners = [];
+let importedRounds = [];
+let initialSpots = {};
 
 async function pullResults(){
-
   const url = document.getElementById("verify").value.trim();
   const status = document.getElementById("status");
 
   status.textContent = "Loading RANDOM.ORG verify page...";
 
   try{
-
     const res = await fetch("/api/verify?url=" + encodeURIComponent(url));
     const data = await res.json();
 
@@ -270,31 +148,24 @@ async function pullResults(){
     }
 
     importedWinners = data.winners || [];
+    importedRounds = data.rounds || [];
+    initialSpots = data.initialSpots || {};
 
-    status.textContent =
-      "Imported " + importedWinners.length + " rounds successfully.";
+    status.textContent = "Imported " + importedWinners.length + " rounds successfully.";
 
     calculateResults();
 
   }catch(e){
-
     status.textContent = "Import failed.";
-
   }
 }
 
 function calculateResults(){
-
-  const per =
-    Number(document.getElementById("perwin").value || 0);
-
-  const entry =
-    Number(document.getElementById("entry").value || 0);
-
+  const per = Number(document.getElementById("perwin").value || 0);
+  const entry = Number(document.getElementById("entry").value || 0);
   const names = importedWinners;
 
   const data = {};
-
   let current = "";
   let streak = 0;
   let streakStart = 0;
@@ -305,12 +176,8 @@ function calculateResults(){
   let topStreakEnd = 0;
 
   names.forEach((name, index) => {
-
     if(!data[name]){
-      data[name] = {
-        wins:0,
-        best:0
-      };
+      data[name] = {wins:0,best:0};
     }
 
     data[name].wins++;
@@ -342,77 +209,53 @@ function calculateResults(){
   document.getElementById("body").innerHTML =
     rows.length
     ? rows.map(row => {
-
       const name = row[0];
       const d = row[1];
-
       const net = (d.wins * per) - entry;
 
       return `
       <tr>
         <td>${name}</td>
         <td>${d.wins}</td>
-        <td class="${net >= 0 ? "good" : "bad"}">
-          $${net.toFixed(2)}
-        </td>
+        <td class="${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</td>
         <td>${d.best}</td>
-      </tr>
-      `;
+      </tr>`;
     }).join("")
     : '<tr><td colspan="4">No results yet</td></tr>';
 
   if(topStreakCount > 0){
-
-    document.getElementById("streakName").textContent =
-      topStreakName;
-
-    document.getElementById("streakCount").textContent =
-      topStreakCount + " in a row";
-
+    document.getElementById("streakName").textContent = topStreakName;
+    document.getElementById("streakCount").textContent = topStreakCount + " in a row";
     document.getElementById("streakRounds").textContent =
       topStreakStart === topStreakEnd
       ? "Round " + topStreakStart
       : "Rounds " + topStreakStart + " - " + topStreakEnd;
   }
 
-  const playerList =
-    document.getElementById("playerList");
-
-  let listHTML = "";
-
-  rows.forEach((row, index) => {
-
-    const name = row[0];
-    const d = row[1];
-
-    const net = (d.wins * per) - entry;
-
-    listHTML += `
-    <div class="playerLine">
-
-      <div>
-        <span class="playerNum">${index + 1}.</span>
-        ${name}
-      </div>
-
-      <div class="${net >= 0 ? "good" : "bad"}">
-        $${net.toFixed(2)}
-      </div>
-
-    </div>
-    `;
-  });
-
-  playerList.innerHTML = listHTML || `
-    <div class="playerLine">
-      <div><span class="playerNum">1.</span> No player yet</div>
-      <div>$0.00</div>
-    </div>
-  `;
+  buildPlayerNetList(per, entry);
 }
 
-document.getElementById("pullBtn")
-  .addEventListener("click", pullResults);
+function buildPlayerNetList(per, entry){
+  const playerList = document.getElementById("playerList");
+  let html = "";
+
+  for(let spot = 1; spot <= 10; spot++){
+    const name = initialSpots[spot] || "No player";
+    const wins = importedRounds.filter(r => Number(r.spot) === spot).length;
+    const net = (wins * per) - entry;
+
+    html += `
+    <div class="netRow">
+      <div class="netNum">${spot}.</div>
+      <div class="netName">${name}</div>
+      <div class="netAmount ${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</div>
+    </div>`;
+  }
+
+  playerList.innerHTML = html;
+}
+
+document.getElementById("pullBtn").addEventListener("click", pullResults);
 </script>
 
 </body>
