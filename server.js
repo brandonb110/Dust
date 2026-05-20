@@ -9,20 +9,24 @@ app.use(express.static("public"));
 function parseResultLine(line) {
   const cleaned = line.replace(/\s+/g, " ").trim();
 
-  // Common RANDOM.ORG format:
-  // 1. 5. Jason Park
-  // placement = 1, spot = 5, name = Jason Park
-  let match = cleaned.match(/^(\d+)\.\s+(\d+)\.\s+(.+)$/);
+  // RANDOM.ORG format:
+  // 1. 5. Player Name
+  // Also supports blank names like:
+  // 10. 1.
+  let match = cleaned.match(/^(\d+)\.\s+(\d+)\.\s*(.*)$/);
   if (match) {
+    const spot = Number(match[2]);
+    const rawName = (match[3] || "").trim();
+
     return {
       placement: Number(match[1]),
-      spot: Number(match[2]),
-      name: match[3].trim()
+      spot,
+      name: rawName || `#${spot}`
     };
   }
 
   // Fallback:
-  // 1. Jason Park
+  // 1. Player Name
   match = cleaned.match(/^(\d+)\.\s+(.+)$/);
   if (match) {
     return {
@@ -35,98 +39,163 @@ function parseResultLine(line) {
   return null;
 }
 
-app.get("/api/verify", async (req, res) => {
-  try {
-    const verifyUrl = req.query.url;
+async function loadVerifyPage(verifyUrl) {
+  if (!verifyUrl || !verifyUrl.startsWith("https://giveaways.random.org/verify/")) {
+    throw new Error("Please enter a valid RANDOM.ORG giveaway verify link.");
+  }
 
-    if (!verifyUrl || !verifyUrl.startsWith("https://giveaways.random.org/verify/")) {
-      return res.status(400).json({ error: "Please enter a valid RANDOM.ORG giveaway verify link." });
-    }
+  const response = await fetch(verifyUrl, {
+    headers: { "User-Agent": "Mozilla/5.0 CashCalculatorBot" }
+  });
 
-    const response = await fetch(verifyUrl, {
-      headers: { "User-Agent": "Mozilla/5.0 CashCalculatorBot" }
-    });
+  if (!response.ok) {
+    throw new Error("Could not load RANDOM.ORG verify page.");
+  }
 
-    if (!response.ok) {
-      return res.status(500).json({ error: "Could not load RANDOM.ORG verify page." });
-    }
+  const html = await response.text();
+  const $ = cheerio.load(html);
 
-    const html = await response.text();
-    const $ = cheerio.load(html);
+  return $("body").text()
+    .replace(/\r/g, "\n")
+    .replace(/\t/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+}
 
-    const bodyText = $("body").text()
-      .replace(/\r/g, "\n")
-      .replace(/\t/g, " ")
-      .replace(/[ ]{2,}/g, " ")
-      .replace(/\n{2,}/g, "\n")
-      .trim();
+function parseRounds(bodyText) {
+  const lines = bodyText.split("\n").map(x => x.trim()).filter(Boolean);
+  const rounds = [];
+  let initialSpots = {};
 
-    const lines = bodyText.split("\n").map(x => x.trim()).filter(Boolean);
+  for (let i = 0; i < lines.length; i++) {
+    const roundMatch = lines[i].match(/Result of Round #(\d+)/i);
 
-    const winners = [];
-    const rounds = [];
-    let initialSpots = {};
+    if (roundMatch) {
+      const roundNumber = Number(roundMatch[1]);
+      const entries = [];
 
-    for (let i = 0; i < lines.length; i++) {
-      const roundMatch = lines[i].match(/Result of Round #(\d+)/i);
+      for (let j = i + 1; j < lines.length; j++) {
+        const nextRound = lines[j].match(/Result of Round #(\d+)/i);
+        if (nextRound) break;
 
-      if (roundMatch) {
-        const roundNumber = Number(roundMatch[1]);
-        const roundEntries = [];
+        const parsed = parseResultLine(lines[j]);
 
-        for (let j = i + 1; j < lines.length; j++) {
-          const nextRound = lines[j].match(/Result of Round #(\d+)/i);
-          if (nextRound) break;
-
-          const parsed = parseResultLine(lines[j]);
-
-          if (parsed && parsed.placement >= 1 && parsed.placement <= 10) {
-            roundEntries.push(parsed);
-          }
+        if (parsed && parsed.placement >= 1 && parsed.placement <= 10) {
+          entries.push(parsed);
         }
+      }
 
-        if (roundEntries.length > 0) {
-          const winner = roundEntries.find(x => x.placement === 1);
+      if (entries.length > 0) {
+        rounds.push({ round: roundNumber, entries });
 
-          if (winner) {
-            winners.push(winner.name);
-
-            rounds.push({
-              round: roundNumber,
-              winner: winner.name,
-              spot: winner.spot
-            });
-          }
-
-          if (Object.keys(initialSpots).length === 0) {
-            roundEntries.forEach(entry => {
-              if (entry.spot !== null && entry.spot >= 1 && entry.spot <= 10) {
-                initialSpots[entry.spot] = entry.name;
-              } else if (entry.placement >= 1 && entry.placement <= 10) {
-                initialSpots[entry.placement] = entry.name;
-              }
-            });
-          }
+        // First round contains all original assigned spots.
+        if (Object.keys(initialSpots).length === 0) {
+          entries.forEach(entry => {
+            if (entry.spot !== null && entry.spot >= 1 && entry.spot <= 10) {
+              initialSpots[entry.spot] = entry.name;
+            }
+          });
         }
       }
     }
+  }
+
+  return { rounds, initialSpots };
+}
+
+app.get("/api/verify", async (req, res) => {
+  try {
+    const verifyUrl = req.query.url;
+    const bodyText = await loadVerifyPage(verifyUrl);
+    const parsed = parseRounds(bodyText);
+
+    const winners = [];
+    const winnerRounds = [];
+
+    parsed.rounds.forEach(round => {
+      const winner = round.entries.find(x => x.placement === 1);
+
+      if (winner) {
+        winners.push(winner.name);
+
+        winnerRounds.push({
+          round: round.round,
+          winner: winner.name,
+          spot: winner.spot
+        });
+      }
+    });
 
     res.json({
       verifyUrl,
       count: winners.length,
       winners,
-      rounds,
-      initialSpots,
+      rounds: winnerRounds,
+      initialSpots: parsed.initialSpots,
       rawPreview: bodyText.slice(0, 2000)
     });
   } catch (err) {
-    res.status(500).json({
-      error: "Server error reading verify link.",
-      details: err.message
+    res.status(500).json({ error: err.message || "Server error reading verify link." });
+  }
+});
+
+app.get("/api/tt", async (req, res) => {
+  try {
+    const verifyUrl = req.query.url;
+    const bottomCount = Math.max(1, Math.min(5, Number(req.query.bottom || 1)));
+
+    const bodyText = await loadVerifyPage(verifyUrl);
+    const parsed = parseRounds(bodyText);
+
+    const topList = [];
+    const bottomList = [];
+    const bottomTally = {};
+
+    parsed.rounds.forEach(round => {
+      const sorted = round.entries.slice().sort((a, b) => a.placement - b.placement);
+      const top = sorted.find(x => x.placement === 1);
+
+      if (top) {
+        topList.push({
+          round: round.round,
+          spot: top.spot,
+          name: top.name
+        });
+      }
+
+      const bottomEntries = sorted.slice(-bottomCount);
+
+      bottomEntries.forEach(entry => {
+        bottomList.push({
+          round: round.round,
+          spot: entry.spot,
+          placement: entry.placement,
+          name: entry.name
+        });
+
+        if (!bottomTally[entry.name]) {
+          bottomTally[entry.name] = 0;
+        }
+
+        bottomTally[entry.name]++;
+      });
     });
+
+    res.json({
+      verifyUrl,
+      bottomCount,
+      roundCount: parsed.rounds.length,
+      topList,
+      bottomList,
+      bottomTally,
+      initialSpots: parsed.initialSpots
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message || "Server error reading verify link." });
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`Cash calculator running on port ${PORT}`);
+  console.log(`Calculator running on port ${PORT}`);
 });
