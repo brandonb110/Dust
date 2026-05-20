@@ -23,12 +23,21 @@ th{background:#1f2937}
 .grid{display:flex;gap:8px;align-items:flex-end}
 .grid>div{flex:1;min-width:0}
 .notice{color:#cbd5e1;font-size:14px;line-height:1.45}
+.streakBox{background:#020617;border:1px solid #374151;border-radius:12px;padding:15px;margin-top:10px;text-align:center}
+.streakBox .big{font-size:30px;font-weight:bold;color:#facc15;margin:8px 0}
+.streakBox .name{font-size:22px;font-weight:bold;color:#60a5fa}
 .netList{background:#020617;border:1px solid #374151;border-radius:10px;padding:10px;margin-top:10px}
 .netRow{display:grid;grid-template-columns:42px 1fr 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .netRow:last-child{border-bottom:0}
 .netNum{font-weight:bold;color:#60a5fa}
+.netName{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .netAmount{text-align:right}
 .copyButton{background:#22c55e;color:#020617;font-weight:900;font-size:15px;padding:12px;margin:10px 0 12px 0;border-radius:10px;width:100%}
+@media(max-width:700px){
+table{font-size:13px}
+.netRow{grid-template-columns:34px 1fr 80px;font-size:14px}
+.grid{gap:6px}
+}
 </style>
 </head>
 <body>
@@ -68,18 +77,52 @@ th{background:#1f2937}
 </div>
 
 <div class="card">
+<h2>Most Consecutive Rounds Hit</h2>
+<div class="streakBox">
+<div class="name" id="streakName">No results yet</div>
+<div class="big" id="streakCount">0 in a row</div>
+<div class="notice" id="streakRounds">Import results to see the longest streak.</div>
+</div>
+</div>
+
+<div class="card">
+<h2>Results</h2>
+<table>
+<thead>
+<tr>
+<th>Player</th>
+<th>#</th>
+<th>Wins</th>
+<th>Net</th>
+<th>Best Streak</th>
+</tr>
+</thead>
+<tbody id="body">
+<tr><td colspan="5">No results yet</td></tr>
+</tbody>
+</table>
+</div>
+
+<div class="card">
 <h2>Player Net List</h2>
 
 <button id="copyBtn" type="button" class="copyButton">
 COPY PLAYER NET LIST
 </button>
 
-<div class="netList" id="playerList"></div>
+<div class="netList" id="playerList">
+<div class="netRow">
+<div class="netNum">#</div>
+<div class="netName">No player yet</div>
+<div class="netAmount">$0.00</div>
+</div>
+</div>
 </div>
 
 </div>
 
 <script>
+let importedWinners = [];
 let importedRounds = [];
 let initialSpots = {};
 
@@ -98,32 +141,25 @@ async function pullResults(){
       return;
     }
 
+    importedWinners = data.winners || [];
     importedRounds = data.rounds || [];
     initialSpots = data.initialSpots || {};
 
-    status.textContent = "Imported " + importedRounds.length + " rounds successfully.";
+    status.textContent = "Imported " + importedWinners.length + " rounds successfully.";
 
-    buildPlayerNetList();
+    calculateResults();
 
   }catch(e){
     status.textContent = "Import failed.";
   }
 }
 
-function getSpotRows(){
-
-  const per = Number(document.getElementById("perwin").value || 0);
-  const entry = Number(document.getElementById("entry").value || 0);
-
+function getSpotRows(per, entry){
   const spotRows = [];
 
   for(let spot = 1; spot <= 10; spot++){
-
     const name = initialSpots[spot] || `#${spot}`;
-
-    const wins =
-      importedRounds.filter(r => Number(r.spot) === spot).length;
-
+    const wins = importedRounds.filter(r => Number(r.spot) === spot).length;
     const net = (wins * per) - entry;
 
     spotRows.push({
@@ -137,35 +173,180 @@ function getSpotRows(){
   return spotRows.sort((a,b) => a.spot - b.spot);
 }
 
-function buildPlayerNetList(){
+function getCombinedPlayerRows(per, entry){
+  const players = {};
 
+  for(let spot = 1; spot <= 10; spot++){
+    const name = initialSpots[spot] || `#${spot}`;
+
+    if(!players[name]){
+      players[name] = {
+        name: name,
+        spots: [],
+        wins: 0,
+        best: 0,
+        firstSpot: spot
+      };
+    }
+
+    players[name].spots.push(spot);
+    players[name].firstSpot = Math.min(players[name].firstSpot, spot);
+  }
+
+  importedRounds.forEach(roundObj => {
+    const spot = Number(roundObj.spot);
+    const name = initialSpots[spot] || roundObj.winner || roundObj.name || `#${spot}`;
+
+    if(!players[name]){
+      players[name] = {
+        name: name,
+        spots: [],
+        wins: 0,
+        best: 0,
+        firstSpot: spot || 999
+      };
+    }
+
+    if(spot && !players[name].spots.includes(spot)){
+      players[name].spots.push(spot);
+    }
+
+    players[name].wins++;
+    players[name].firstSpot = Math.min(players[name].firstSpot, spot || 999);
+  });
+
+  Object.values(players).forEach(player => {
+    player.spots = player.spots
+      .map(Number)
+      .filter(n => !isNaN(n))
+      .sort((a,b) => a - b);
+  });
+
+  return Object.values(players);
+}
+
+function calculateResults(){
+  const per = Number(document.getElementById("perwin").value || 0);
+  const entry = Number(document.getElementById("entry").value || 0);
+
+  const players = {};
+  getCombinedPlayerRows(per, entry).forEach(p => {
+    players[p.name] = p;
+  });
+
+  let currentName = "";
+  let streak = 0;
+  let streakStart = 0;
+
+  let topStreakName = "";
+  let topStreakCount = 0;
+  let topStreakStart = 0;
+  let topStreakEnd = 0;
+
+  importedRounds.forEach((roundObj, index) => {
+    const spot = Number(roundObj.spot);
+    const name = initialSpots[spot] || roundObj.winner || roundObj.name || `#${spot}`;
+
+    if(!players[name]){
+      players[name] = {
+        name: name,
+        spots: spot ? [spot] : [],
+        wins: 0,
+        best: 0,
+        firstSpot: spot || 999
+      };
+    }
+
+    if(name === currentName){
+      streak++;
+    } else {
+      currentName = name;
+      streak = 1;
+      streakStart = index + 1;
+    }
+
+    if(streak > players[name].best){
+      players[name].best = streak;
+    }
+
+    if(streak > topStreakCount){
+      topStreakName = name;
+      topStreakCount = streak;
+      topStreakStart = streakStart;
+      topStreakEnd = index + 1;
+    }
+  });
+
+  const rows = Object.values(players)
+    .sort((a,b) => b.wins - a.wins || a.firstSpot - b.firstSpot);
+
+  document.getElementById("body").innerHTML =
+    rows.length
+    ? rows.map(row => {
+      const entryTotal = row.spots.length * entry;
+      const net = (row.wins * per) - entryTotal;
+
+      return `
+      <tr>
+        <td>${row.name}</td>
+        <td>${row.spots.join(", ")}</td>
+        <td>${row.wins}</td>
+        <td class="${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</td>
+        <td>${row.best}</td>
+      </tr>`;
+    }).join("")
+    : '<tr><td colspan="5">No results yet</td></tr>';
+
+  if(topStreakCount > 0){
+    document.getElementById("streakName").textContent = topStreakName;
+    document.getElementById("streakCount").textContent =
+      topStreakCount + " in a row";
+
+    document.getElementById("streakRounds").textContent =
+      topStreakStart === topStreakEnd
+      ? "Round " + topStreakStart
+      : "Rounds " + topStreakStart + " - " + topStreakEnd;
+  } else {
+    document.getElementById("streakName").textContent = "No results yet";
+    document.getElementById("streakCount").textContent = "0 in a row";
+    document.getElementById("streakRounds").textContent = "Import results to see the longest streak.";
+  }
+
+  buildPlayerNetList(per, entry);
+}
+
+function buildPlayerNetList(per, entry){
   const playerList = document.getElementById("playerList");
-  const rows = getSpotRows();
+  const spotRows = getSpotRows(per, entry);
 
   let html = "";
 
-  rows.forEach(row => {
-
+  spotRows.forEach(row => {
     html += `
     <div class="netRow">
       <div class="netNum">${row.spot}</div>
-      <div>${row.name}</div>
-      <div class="netAmount ${row.net >= 0 ? "good" : "bad"}">
-        $${row.net.toFixed(2)}
-      </div>
+      <div class="netName">${row.name}</div>
+      <div class="netAmount ${row.net >= 0 ? "good" : "bad"}">$${row.net.toFixed(2)}</div>
     </div>`;
   });
 
-  playerList.innerHTML = html;
+  playerList.innerHTML = html || `
+    <div class="netRow">
+      <div class="netNum">#</div>
+      <div class="netName">No player yet</div>
+      <div class="netAmount">$0.00</div>
+    </div>`;
 }
 
 document.getElementById("copyBtn").addEventListener("click", async () => {
 
-  const rows = getSpotRows();
+  const per = Number(document.getElementById("perwin").value || 0);
+  const entry = Number(document.getElementById("entry").value || 0);
+  const spotRows = getSpotRows(per, entry);
 
   let text = "DUST Jackpot Results\n\n";
 
-  rows.forEach(row => {
+  spotRows.forEach(row => {
     text += `${row.spot}. ${row.name} - $${row.net.toFixed(2)}\n`;
   });
 
@@ -174,13 +355,12 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
 
     const btn = document.getElementById("copyBtn");
     btn.textContent = "COPIED!";
-
     setTimeout(() => {
       btn.textContent = "COPY PLAYER NET LIST";
     }, 1500);
 
   }catch(e){
-    alert("Copy failed.");
+    alert("Copy failed. Try highlighting the list manually.");
   }
 });
 
