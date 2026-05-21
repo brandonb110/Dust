@@ -154,6 +154,24 @@ async function pullResults(){
   }
 }
 
+function formatMoneyForDisplay(value){
+  return "$" + value.toFixed(2);
+}
+
+function formatMoneyForCopy(value){
+  const rounded = Math.abs(Math.round(value));
+
+  if(value > 0){
+    return "+" + rounded;
+  }
+
+  if(value < 0){
+    return "-" + rounded;
+  }
+
+  return "=";
+}
+
 function getSpotRows(per, entry){
   const spotRows = [];
 
@@ -291,7 +309,7 @@ function calculateResults(){
         <td>${row.name}</td>
         <td>${row.spots.join(", ")}</td>
         <td>${row.wins}</td>
-        <td class="${net >= 0 ? "good" : "bad"}">$${net.toFixed(2)}</td>
+        <td class="${net >= 0 ? "good" : "bad"}">${formatMoneyForDisplay(net)}</td>
         <td>${row.best}</td>
       </tr>`;
     }).join("")
@@ -326,7 +344,7 @@ function buildPlayerNetList(per, entry){
     <div class="netRow">
       <div class="netNum">${row.spot}</div>
       <div class="netName">${row.name}</div>
-      <div class="netAmount ${row.net >= 0 ? "good" : "bad"}">$${row.net.toFixed(2)}</div>
+      <div class="netAmount ${row.net >= 0 ? "good" : "bad"}">${formatMoneyForDisplay(row.net)}</div>
     </div>`;
   });
 
@@ -347,7 +365,7 @@ document.getElementById("copyBtn").addEventListener("click", async () => {
   let text = "DUST Jackpot Results\n\n";
 
   spotRows.forEach(row => {
-    text += `${row.spot}. ${row.name} - $${row.net.toFixed(2)}\n`;
+    text += `${row.spot}. ${row.name} ${formatMoneyForCopy(row.net)}\n`;
   });
 
   try{
