@@ -340,11 +340,25 @@ function buildPlayerNetList(per, entry){
   let html = "";
 
   spotRows.forEach(row => {
+
+    const copyStyle =
+      row.net > 0
+      ? "+" + Math.abs(Math.round(row.net))
+      : row.net < 0
+        ? "-" + Math.abs(Math.round(row.net))
+        : "=";
+
     html += `
     <div class="netRow">
-      <div class="netNum">${row.spot}</div>
-      <div class="netName">${row.name}</div>
-      <div class="netAmount ${row.net >= 0 ? "good" : "bad"}">${formatMoneyForDisplay(row.net)}</div>
+      <div class="netNum">${row.spot}.</div>
+
+      <div class="netName">
+        ${row.name}
+      </div>
+
+      <div class="netAmount ${row.net >= 0 ? "good" : "bad"}">
+        ${copyStyle}
+      </div>
     </div>`;
   });
 
