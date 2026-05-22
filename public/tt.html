@@ -84,7 +84,11 @@ let latestTopText = "";
 let latestDamageText = "";
 
 function fmtDamage(value){
-  return Math.round(value).toString();
+  const num = Number(value || 0);
+
+  return Number.isInteger(num)
+    ? num.toString()
+    : num.toFixed(2);
 }
 
 function cleanDisplayName(name){
