@@ -9,10 +9,7 @@ app.use(express.static("public"));
 function parseResultLine(line) {
   const cleaned = line.replace(/\s+/g, " ").trim();
 
-  // RANDOM.ORG format:
-  // 1. 5. Player Name
-  // Also supports blank names like:
-  // 10. 1.
+  // Format: 1. 5. Player Name
   let match = cleaned.match(/^(\d+)\.\s+(\d+)\.\s*(.*)$/);
   if (match) {
     const spot = Number(match[2]);
@@ -25,8 +22,7 @@ function parseResultLine(line) {
     };
   }
 
-  // Fallback:
-  // 1. Player Name
+  // Fallback: 1. Player Name
   match = cleaned.match(/^(\d+)\.\s+(.+)$/);
   if (match) {
     return {
@@ -89,7 +85,6 @@ function parseRounds(bodyText) {
       if (entries.length > 0) {
         rounds.push({ round: roundNumber, entries });
 
-        // First round contains all original assigned spots.
         if (Object.keys(initialSpots).length === 0) {
           entries.forEach(entry => {
             if (entry.spot !== null && entry.spot >= 1 && entry.spot <= 10) {
@@ -104,6 +99,7 @@ function parseRounds(bodyText) {
   return { rounds, initialSpots };
 }
 
+// Existing DUST Jackpot endpoint
 app.get("/api/verify", async (req, res) => {
   try {
     const verifyUrl = req.query.url;
@@ -140,55 +136,56 @@ app.get("/api/verify", async (req, res) => {
   }
 });
 
-app.get("/api/tt", async (req, res) => {
+// New TenTopper endpoint
+app.get("/api/tentopper", async (req, res) => {
   try {
     const verifyUrl = req.query.url;
-    const bottomCount = Math.max(1, Math.min(5, Number(req.query.bottom || 1)));
-
     const bodyText = await loadVerifyPage(verifyUrl);
     const parsed = parseRounds(bodyText);
 
-    const topList = [];
-    const bottomList = [];
-    const bottomTally = {};
+    const topResults = [];
+    const spotTenResults = [];
+    const spotTenTally = {};
 
     parsed.rounds.forEach(round => {
       const sorted = round.entries.slice().sort((a, b) => a.placement - b.placement);
+
       const top = sorted.find(x => x.placement === 1);
+      const spotTen = sorted.find(x => x.spot === 10);
 
       if (top) {
-        topList.push({
+        topResults.push({
           round: round.round,
           spot: top.spot,
           name: top.name
         });
       }
 
-      const bottomEntries = sorted.slice(-bottomCount);
-
-      bottomEntries.forEach(entry => {
-        bottomList.push({
+      if (spotTen) {
+        spotTenResults.push({
           round: round.round,
-          spot: entry.spot,
-          placement: entry.placement,
-          name: entry.name
+          placement: spotTen.placement,
+          spot: spotTen.spot,
+          name: spotTen.name
         });
 
-        if (!bottomTally[entry.name]) {
-          bottomTally[entry.name] = 0;
+        if (!spotTenTally[spotTen.name]) {
+          spotTenTally[spotTen.name] = {
+            name: spotTen.name,
+            count: 0
+          };
         }
 
-        bottomTally[entry.name]++;
-      });
+        spotTenTally[spotTen.name].count++;
+      }
     });
 
     res.json({
       verifyUrl,
-      bottomCount,
       roundCount: parsed.rounds.length,
-      topList,
-      bottomList,
-      bottomTally,
+      topResults,
+      spotTenResults,
+      spotTenTally: Object.values(spotTenTally),
       initialSpots: parsed.initialSpots
     });
   } catch (err) {
