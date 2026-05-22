@@ -52,7 +52,7 @@ button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
 <div class="grid">
 <div>
 <label>Damage Cost Per Round</label>
-<input id="cost" type="number" value="50">
+<input id="cost" type="number" placeholder="Enter damage amount">
 </div>
 </div>
 
@@ -71,7 +71,6 @@ button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
 
 <div class="card">
 <h2>Spot 10 Damages</h2>
-<p class="notice">This shows who ended up in spot 10 for each round. Every round will have one damage entry.</p>
 <button class="copyBtn" id="copyDamage" type="button">COPY DAMAGES</button>
 <div class="listBox" id="damageList">
 <div class="damageRow"><div class="num">#</div><div>No results yet</div><div class="amount">0</div></div>
@@ -104,14 +103,28 @@ async function generateTenTopper(){
       return;
     }
 
-    const topList = data.topResults.slice(0, 10);
-    const damageList = data.spotTenResults.slice(0, 10);
+    const topList = data.topResults || [];
+    const damageList = data.damageResults || [];
 
     latestTopText =
-      topList.map((x, index) => `${index + 1} ${x.name}`).join("\\n");
+      topList.map((x, index) => `${index + 1} ${x.name}`).join("\n");
+
+    const damageTotals = {};
+
+    damageList.forEach(x => {
+      if(!damageTotals[x.name]){
+        damageTotals[x.name] = 0;
+      }
+
+      damageTotals[x.name]++;
+    });
 
     latestDamageText =
-      damageList.map((x, index) => `${index + 1} ${x.name} -${fmtDamage(cost)}`).join("\\n");
+      Object.entries(damageTotals)
+        .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .map(([name,count]) =>
+          `${name} x${count} -${fmtDamage(count * cost)}`
+        ).join("\n");
 
     document.getElementById("topList").innerHTML =
       topList.length
@@ -123,16 +136,28 @@ async function generateTenTopper(){
       `).join("")
       : '<div class="row"><div class="num">#</div><div>No results</div></div>';
 
+    const damageTotalsDisplay = {};
+
+    damageList.forEach(x => {
+      if(!damageTotalsDisplay[x.name]){
+        damageTotalsDisplay[x.name] = 0;
+      }
+
+      damageTotalsDisplay[x.name]++;
+    });
+
     document.getElementById("damageList").innerHTML =
-      damageList.length
-      ? damageList.map((x, index) => `
-        <div class="damageRow">
-          <div class="num">${index + 1}</div>
-          <div>${x.name}</div>
-          <div class="amount">-${fmtDamage(cost)}</div>
-        </div>
-      `).join("")
-      : '<div class="damageRow"><div class="num">#</div><div>No results</div><div class="amount">0</div></div>';
+      Object.keys(damageTotalsDisplay).length
+      ? Object.entries(damageTotalsDisplay)
+          .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+          .map(([name,count]) => `
+            <div class="damageRow">
+              <div>${name} x${count}</div>
+              <div></div>
+              <div class="amount">-${fmtDamage(count * cost)}</div>
+            </div>
+          `).join("")
+      : '<div class="damageRow"><div>No results</div><div></div><div class="amount">0</div></div>';
 
     status.textContent = "Imported " + data.roundCount + " rounds successfully.";
 
