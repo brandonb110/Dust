@@ -129,7 +129,7 @@ async function generateTenTopper(){
       Object.entries(damageTotals)
         .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .map(([name,count]) =>
-          `${name} -${fmtDamage(count * cost)}`
+          `${name} x${count} -${fmtDamage(count * cost)}`
         ).join("\n");
 
     document.getElementById("topList").innerHTML =
@@ -160,7 +160,7 @@ async function generateTenTopper(){
           .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
           .map(([name,count]) => `
             <div class="damageRow">
-              <div>${name}</div>
+              <div>${name} x${count}</div>
               <div></div>
               <div class="amount">-${fmtDamage(count * cost)}</div>
             </div>
