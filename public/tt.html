@@ -24,11 +24,11 @@ button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
 .listBox{background:#020617;border:1px solid #374151;border-radius:10px;padding:10px;margin-top:10px}
 .row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .row:last-child{border-bottom:0}
-.damageRow{display:grid;grid-template-columns:42px 1fr 80px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
+.damageRow{display:grid;grid-template-columns:1fr 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .damageRow:last-child{border-bottom:0}
 .num{font-weight:bold;color:#60a5fa}
 .amount{text-align:right;color:#ef4444;font-weight:bold}
-@media(max-width:700px){.grid{flex-direction:column}.damageRow{grid-template-columns:34px 1fr 70px;font-size:14px}.row{grid-template-columns:34px 1fr;font-size:14px}}
+@media(max-width:700px){.grid{flex-direction:column}.damageRow{grid-template-columns:1fr 75px;font-size:14px}.row{grid-template-columns:34px 1fr;font-size:14px}}
 </style>
 </head>
 <body>
@@ -87,6 +87,10 @@ function fmtDamage(value){
   return Math.round(value).toString();
 }
 
+function cleanDisplayName(name){
+  return String(name || "").replace(/^\s*\d+\s+/, "").trim();
+}
+
 async function generateTenTopper(){
   const url = document.getElementById("verify").value.trim();
   const cost = Number(document.getElementById("cost").value || 0);
@@ -107,23 +111,25 @@ async function generateTenTopper(){
     const damageList = data.damageResults || [];
 
     latestTopText =
-      topList.map((x, index) => `${index + 1} ${x.name}`).join("\n");
+      topList.map((x, index) => `${index + 1} ${cleanDisplayName(x.name)}`).join("\n");
 
     const damageTotals = {};
 
     damageList.forEach(x => {
-      if(!damageTotals[x.name]){
-        damageTotals[x.name] = 0;
+      const name = cleanDisplayName(x.name);
+
+      if(!damageTotals[name]){
+        damageTotals[name] = 0;
       }
 
-      damageTotals[x.name]++;
+      damageTotals[name]++;
     });
 
     latestDamageText =
       Object.entries(damageTotals)
         .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
         .map(([name,count]) =>
-          `${name} x${count} -${fmtDamage(count * cost)}`
+          `${name} -${fmtDamage(count * cost)}`
         ).join("\n");
 
     document.getElementById("topList").innerHTML =
@@ -131,7 +137,7 @@ async function generateTenTopper(){
       ? topList.map((x, index) => `
         <div class="row">
           <div class="num">${index + 1}</div>
-          <div>${x.name}</div>
+          <div>${cleanDisplayName(x.name)}</div>
         </div>
       `).join("")
       : '<div class="row"><div class="num">#</div><div>No results</div></div>';
@@ -139,11 +145,13 @@ async function generateTenTopper(){
     const damageTotalsDisplay = {};
 
     damageList.forEach(x => {
-      if(!damageTotalsDisplay[x.name]){
-        damageTotalsDisplay[x.name] = 0;
+      const name = cleanDisplayName(x.name);
+
+      if(!damageTotalsDisplay[name]){
+        damageTotalsDisplay[name] = 0;
       }
 
-      damageTotalsDisplay[x.name]++;
+      damageTotalsDisplay[name]++;
     });
 
     document.getElementById("damageList").innerHTML =
@@ -152,7 +160,7 @@ async function generateTenTopper(){
           .sort((a,b) => b[1] - a[1] || a[0].localeCompare(b[0]))
           .map(([name,count]) => `
             <div class="damageRow">
-              <div>${name} x${count}</div>
+              <div>${name}</div>
               <div></div>
               <div class="amount">-${fmtDamage(count * cost)}</div>
             </div>
