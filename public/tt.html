@@ -24,11 +24,11 @@ button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
 .listBox{background:#020617;border:1px solid #374151;border-radius:10px;padding:10px;margin-top:10px}
 .row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .row:last-child{border-bottom:0}
-.num{font-weight:bold;color:#60a5fa}
-.damageRow{display:grid;grid-template-columns:1fr 70px 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
+.damageRow{display:grid;grid-template-columns:42px 1fr 80px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
 .damageRow:last-child{border-bottom:0}
+.num{font-weight:bold;color:#60a5fa}
 .amount{text-align:right;color:#ef4444;font-weight:bold}
-@media(max-width:700px){.grid{flex-direction:column}.damageRow{grid-template-columns:1fr 50px 75px;font-size:14px}}
+@media(max-width:700px){.grid{flex-direction:column}.damageRow{grid-template-columns:34px 1fr 70px;font-size:14px}.row{grid-template-columns:34px 1fr;font-size:14px}}
 </style>
 </head>
 <body>
@@ -51,7 +51,7 @@ button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
 
 <div class="grid">
 <div>
-<label>Damage Cost</label>
+<label>Damage Cost Per Round</label>
 <input id="cost" type="number" value="50">
 </div>
 </div>
@@ -71,10 +71,10 @@ button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
 
 <div class="card">
 <h2>Spot 10 Damages</h2>
-<p class="notice">This lists the player assigned to spot 10 each round and calculates damages owed by how many times they landed in spot 10.</p>
+<p class="notice">This shows who ended up in spot 10 for each round. Every round will have one damage entry.</p>
 <button class="copyBtn" id="copyDamage" type="button">COPY DAMAGES</button>
 <div class="listBox" id="damageList">
-<div class="damageRow"><div>No results yet</div><div>0x</div><div class="amount">0</div></div>
+<div class="damageRow"><div class="num">#</div><div>No results yet</div><div class="amount">0</div></div>
 </div>
 </div>
 
@@ -105,36 +105,34 @@ async function generateTenTopper(){
     }
 
     const topList = data.topResults.slice(0, 10);
-    const damageRows = data.spotTenTally
-      .slice()
-      .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+    const damageList = data.spotTenResults.slice(0, 10);
 
-    latestTopText = "TenTopper Top Results\\n\\n" +
-      topList.map((x, index) => `${index + 1}. ${x.name}`).join("\\n");
+    latestTopText =
+      topList.map((x, index) => `${index + 1} ${x.name}`).join("\\n");
 
-    latestDamageText = "TenTopper Damages\\n\\n" +
-      damageRows.map(x => `${x.name} - ${x.count}x - ${fmtDamage(x.count * cost)}`).join("\\n");
+    latestDamageText =
+      damageList.map((x, index) => `${index + 1} ${x.name} -${fmtDamage(cost)}`).join("\\n");
 
     document.getElementById("topList").innerHTML =
       topList.length
       ? topList.map((x, index) => `
         <div class="row">
-          <div class="num">${index + 1}.</div>
+          <div class="num">${index + 1}</div>
           <div>${x.name}</div>
         </div>
       `).join("")
       : '<div class="row"><div class="num">#</div><div>No results</div></div>';
 
     document.getElementById("damageList").innerHTML =
-      damageRows.length
-      ? damageRows.map(x => `
+      damageList.length
+      ? damageList.map((x, index) => `
         <div class="damageRow">
+          <div class="num">${index + 1}</div>
           <div>${x.name}</div>
-          <div>${x.count}x</div>
-          <div class="amount">${fmtDamage(x.count * cost)}</div>
+          <div class="amount">-${fmtDamage(cost)}</div>
         </div>
       `).join("")
-      : '<div class="damageRow"><div>No results</div><div>0x</div><div class="amount">0</div></div>';
+      : '<div class="damageRow"><div class="num">#</div><div>No results</div><div class="amount">0</div></div>';
 
     status.textContent = "Imported " + data.roundCount + " rounds successfully.";
 
