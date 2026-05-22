@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TenTopper Calculator</title>
+<style>
+body{margin:0;background:#0f172a;color:white;font-family:Arial,Helvetica,sans-serif}
+header{background:#111827;padding:12px;text-align:center;border-bottom:1px solid #374151}
+h1{margin:0;color:#60a5fa;font-size:28px}
+nav{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+nav a{color:white;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:8px 12px;text-decoration:none;font-size:14px}
+.wrap{max-width:1050px;margin:20px auto;padding:0 14px}
+.card{background:#111827;border:1px solid #374151;border-radius:14px;padding:16px;margin-bottom:16px}
+.compactCard{max-width:760px;margin:0 auto 16px auto}
+label{display:block;margin-top:6px;font-weight:bold;font-size:13px}
+input,button{width:100%;padding:9px;margin-top:5px;border-radius:8px;border:1px solid #374151;font-size:14px;box-sizing:border-box}
+input{background:#020617;color:white}
+button{background:#2563eb;color:white;font-weight:bold;border:0;cursor:pointer}
+.copyBtn{background:#22c55e;color:#020617;margin-top:10px}
+.grid{display:flex;gap:8px;align-items:flex-end}
+.grid>div{flex:1;min-width:0}
+.notice{color:#cbd5e1;font-size:14px;line-height:1.45}
+.listBox{background:#020617;border:1px solid #374151;border-radius:10px;padding:10px;margin-top:10px}
+.row{display:grid;grid-template-columns:42px 1fr;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
+.row:last-child{border-bottom:0}
+.num{font-weight:bold;color:#60a5fa}
+.damageRow{display:grid;grid-template-columns:1fr 70px 90px;gap:8px;align-items:center;padding:8px 4px;border-bottom:1px solid #1f2937;font-size:15px}
+.damageRow:last-child{border-bottom:0}
+.amount{text-align:right;color:#ef4444;font-weight:bold}
+@media(max-width:700px){.grid{flex-direction:column}.damageRow{grid-template-columns:1fr 50px 75px;font-size:14px}}
+</style>
+</head>
+<body>
+
+<header>
+<h1>TenTopper Calculator</h1>
+<nav>
+<a href="/">DUST Jackpot</a>
+<a href="/tentopper.html">TenTopper</a>
+</nav>
+</header>
+
+<div class="wrap">
+
+<div class="card compactCard">
+<h2>RANDOM.ORG Import</h2>
+
+<label>Verify Link</label>
+<input id="verify" placeholder="https://giveaways.random.org/verify/xxxxx">
+
+<div class="grid">
+<div>
+<label>Damage Cost</label>
+<input id="cost" type="number" value="50">
+</div>
+</div>
+
+<button id="generateBtn" type="button">Generate TenTopper Results</button>
+
+<p id="status" class="notice">Paste the RANDOM.ORG verify link, enter the cost, then generate.</p>
+</div>
+
+<div class="card">
+<h2>Top Spot Each Round</h2>
+<button class="copyBtn" id="copyTop" type="button">COPY TOP RESULTS</button>
+<div class="listBox" id="topList">
+<div class="row"><div class="num">#</div><div>No results yet</div></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Spot 10 Damages</h2>
+<p class="notice">This lists the player assigned to spot 10 each round and calculates damages owed by how many times they landed in spot 10.</p>
+<button class="copyBtn" id="copyDamage" type="button">COPY DAMAGES</button>
+<div class="listBox" id="damageList">
+<div class="damageRow"><div>No results yet</div><div>0x</div><div class="amount">0</div></div>
+</div>
+</div>
+
+</div>
+
+<script>
+let latestTopText = "";
+let latestDamageText = "";
+
+function fmtDamage(value){
+  return Math.round(value).toString();
+}
+
+async function generateTenTopper(){
+  const url = document.getElementById("verify").value.trim();
+  const cost = Number(document.getElementById("cost").value || 0);
+  const status = document.getElementById("status");
+
+  status.textContent = "Loading RANDOM.ORG verify page...";
+
+  try{
+    const res = await fetch("/api/tentopper?url=" + encodeURIComponent(url));
+    const data = await res.json();
+
+    if(!res.ok){
+      status.textContent = data.error || "Could not import results.";
+      return;
+    }
+
+    const topList = data.topResults.slice(0, 10);
+    const damageRows = data.spotTenTally
+      .slice()
+      .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+
+    latestTopText = "TenTopper Top Results\\n\\n" +
+      topList.map((x, index) => `${index + 1}. ${x.name}`).join("\\n");
+
+    latestDamageText = "TenTopper Damages\\n\\n" +
+      damageRows.map(x => `${x.name} - ${x.count}x - ${fmtDamage(x.count * cost)}`).join("\\n");
+
+    document.getElementById("topList").innerHTML =
+      topList.length
+      ? topList.map((x, index) => `
+        <div class="row">
+          <div class="num">${index + 1}.</div>
+          <div>${x.name}</div>
+        </div>
+      `).join("")
+      : '<div class="row"><div class="num">#</div><div>No results</div></div>';
+
+    document.getElementById("damageList").innerHTML =
+      damageRows.length
+      ? damageRows.map(x => `
+        <div class="damageRow">
+          <div>${x.name}</div>
+          <div>${x.count}x</div>
+          <div class="amount">${fmtDamage(x.count * cost)}</div>
+        </div>
+      `).join("")
+      : '<div class="damageRow"><div>No results</div><div>0x</div><div class="amount">0</div></div>';
+
+    status.textContent = "Imported " + data.roundCount + " rounds successfully.";
+
+  }catch(e){
+    status.textContent = "Import failed.";
+  }
+}
+
+async function copyText(text, buttonId, original){
+  if(!text){ return; }
+
+  try{
+    await navigator.clipboard.writeText(text);
+
+    const btn = document.getElementById(buttonId);
+    btn.textContent = "COPIED!";
+    setTimeout(() => btn.textContent = original, 1500);
+  }catch(e){
+    alert("Copy failed. Try highlighting the list manually.");
+  }
+}
+
+document.getElementById("generateBtn").addEventListener("click", generateTenTopper);
+document.getElementById("copyTop").addEventListener("click", () => copyText(latestTopText, "copyTop", "COPY TOP RESULTS"));
+document.getElementById("copyDamage").addEventListener("click", () => copyText(latestDamageText, "copyDamage", "COPY DAMAGES"));
+</script>
+
+</body>
+</html>
