@@ -44,23 +44,6 @@ table{font-size:13px}
 
 <header>
 <h1>DUST Jackpot Calculator</h1>
-
-<div style="margin-top:10px;">
-  <a href="/tt.html"
-     style="
-       display:inline-block;
-       background:#1f2937;
-       color:white;
-       padding:10px 16px;
-       border-radius:8px;
-       text-decoration:none;
-       border:1px solid #374151;
-       font-weight:bold;
-     ">
-     Open TenTopper
-  </a>
-</div>
-
 </header>
 
 <div class="wrap">
@@ -269,10 +252,11 @@ function calculateResults(){
     players[p.name] = p;
   });
 
-  let currentName = "";
+  let currentSpot = null;
   let streak = 0;
   let streakStart = 0;
 
+  let topStreakSpot = null;
   let topStreakName = "";
   let topStreakCount = 0;
   let topStreakStart = 0;
@@ -292,10 +276,10 @@ function calculateResults(){
       };
     }
 
-    if(name === currentName){
+    if(spot === currentSpot){
       streak++;
     } else {
-      currentName = name;
+      currentSpot = spot;
       streak = 1;
       streakStart = index + 1;
     }
@@ -305,6 +289,7 @@ function calculateResults(){
     }
 
     if(streak > topStreakCount){
+      topStreakSpot = spot;
       topStreakName = name;
       topStreakCount = streak;
       topStreakStart = streakStart;
@@ -333,7 +318,8 @@ function calculateResults(){
     : '<tr><td colspan="5">No results yet</td></tr>';
 
   if(topStreakCount > 0){
-    document.getElementById("streakName").textContent = topStreakName;
+    document.getElementById("streakName").textContent =
+      topStreakSpot + ". " + topStreakName;
     document.getElementById("streakCount").textContent =
       topStreakCount + " in a row";
 
