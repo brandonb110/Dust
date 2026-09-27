@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Squares Board Maker</title>
+<style>
+  :root{--ink:#111;--navy:#173765;--line:#555;--soft:#f0f0f0;--border:#d6d6d6}
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f7f7f8;color:#111}
+  .app{max-width:900px;margin:auto;padding:18px}
+  h1{font-size:26px;margin:0 0 18px}
+  .form{background:#fff;border:1px solid #e3e3e3;border-radius:16px;padding:16px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  label{display:block;font-weight:650;margin:0 0 14px}
+  input,textarea{width:100%;font:inherit;font-size:16px;border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:6px;background:#fff}
+  textarea{min-height:250px;resize:vertical}
+  .buttons{display:flex;flex-wrap:wrap;gap:10px}
+  button{border:0;border-radius:10px;padding:13px 18px;font-size:16px;font-weight:700;cursor:pointer}
+  #generate{background:#1769e0;color:#fff}
+  #save{background:#111;color:#fff}
+  #clear{background:#e9e9eb}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  #status{font-size:14px;color:#666;margin:12px 0 0}
+  .preview{display:none;background:#fff;margin-top:18px;border-radius:14px;padding:10px;overflow:auto}
+  canvas{display:block;width:100%;min-width:620px;height:auto}
+  @media(max-width:600px){.row{grid-template-columns:1fr}.app{padding:12px}.form{padding:14px}}
+</style>
+</head>
+<body>
+<main class="app">
+  <h1>Football Squares Board Maker</h1>
+  <section class="form">
+    <div class="row">
+      <label>Home team (top)<input id="home" placeholder="Home team"></label>
+      <label>Away team (left)<input id="away" placeholder="Away team"></label>
+    </div>
+    <div class="row">
+      <label>Top numbers — 10 digits<input id="topnums" inputmode="numeric" placeholder="1 8 5 4 0 9 2 7 6 3"></label>
+      <label>Left numbers — 10 digits<input id="leftnums" inputmode="numeric" placeholder="8 9 6 4 2 1 3 5 0 7"></label>
+    </div>
+    <label>25 names — numbered or one per line
+      <textarea id="names" placeholder="1 Chris Stokes&#10;2 Shawn Kamp *&#10;3 Jason Greenberg&#10;..."></textarea>
+    </label>
+    <div class="buttons">
+      <button id="generate" type="button">Generate Board</button>
+      <button id="save" type="button" disabled>Save Image</button>
+      <button id="clear" type="button">Clear</button>
+    </div>
+    <p id="status">Enter the board information. Grid dimensions are permanently fixed.</p>
+  </section>
+  <section id="preview" class="preview">
+    <canvas id="board" width="1600" height="1300"></canvas>
+  </section>
+</main>
+<script>
+const $=id=>document.getElementById(id), c=$('board'), ctx=c.getContext('2d');
+const nums=v=>v.trim().split(/[\s,]+/).filter(Boolean);
+const getNames=v=>v.split(/\n/).map(x=>x.trim()).filter(Boolean).map(x=>x.replace(/\*/g,'').replace(/^\s*\d+[.)-]?\s*/,'').trim());
+
+function fit(t,w,s=31,m=18){
+  let z=s;
+  while(z>m){ctx.font=`700 ${z}px Georgia,serif`;if(ctx.measureText(t).width<=w)break;z--}
+  return z;
+}
+function wrap(t,w){
+  const words=t.split(/\s+/), lines=[]; let line='';
+  for(const word of words){
+    const test=line?line+' '+word:word;
+    if(!line||ctx.measureText(test).width<=w) line=test;
+    else{lines.push(line);line=word}
+  }
+  if(line)lines.push(line);
+  return lines.length<=2?lines:[lines.slice(0,-1).join(' '),lines[lines.length-1]];
+}
+function draw(){
+  const home=$('home').value.trim(), away=$('away').value.trim();
+  const top=nums($('topnums').value), left=nums($('leftnums').value), names=getNames($('names').value);
+  if(!home||!away){$('status').textContent='Enter both Home Team and Away Team.';return}
+  if(top.length!==10||left.length!==10||top.some(x=>!/^[0-9]$/.test(x))||left.some(x=>!/^[0-9]$/.test(x))){
+    $('status').textContent='Enter exactly 10 single-digit top numbers and 10 single-digit left numbers.';return
+  }
+  if(names.length!==25){$('status').textContent=`Enter exactly 25 names. Current count: ${names.length}.`;return}
+
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,c.width,c.height);
+  const x0=170,y0=190,sw=72,hh=72,gw=1280,gh=1000,cw=gw/10,rh=gh/10,mx=x0+sw,my=y0+hh,bw=gw/5,bh=gh/5;
+  ctx.fillStyle='#f0f0f0';ctx.fillRect(x0,y0,sw+gw,hh);ctx.fillRect(x0,my,sw,gh);
+  ctx.strokeStyle='#555';ctx.lineWidth=2;ctx.strokeRect(x0,y0,sw+gw,hh+gh);
+  const line=(a,b,d,e)=>{ctx.beginPath();ctx.moveTo(a,b);ctx.lineTo(d,e);ctx.stroke()};
+  line(mx,y0,mx,y0+hh+gh);
+  for(let i=0;i<=10;i++)line(mx+i*cw,y0,mx+i*cw,y0+hh);
+  for(let i=0;i<=10;i++)line(x0,my+i*rh,x0+sw,my+i*rh);
+  for(let i=0;i<=5;i++)line(mx+i*bw,my,mx+i*bw,my+gh);
+  for(let i=0;i<=5;i++)line(mx,my+i*bh,mx+gw,my+i*bh);
+
+  ctx.fillStyle='#173765';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='700 64px Georgia,serif';ctx.fillText(home,mx+gw/2,92);
+  ctx.save();ctx.translate(68,my+gh/2);ctx.rotate(-Math.PI/2);ctx.font='700 52px Georgia,serif';ctx.fillText(away,0,0);ctx.restore();
+  ctx.font='700 42px Georgia,serif';
+  top.forEach((n,i)=>ctx.fillText(n,mx+cw*(i+.5),y0+hh/2));
+  left.forEach((n,i)=>ctx.fillText(n,x0+sw/2,my+rh*(i+.5)));
+
+  ctx.fillStyle='#111';
+  names.forEach((name,i)=>{
+    const col=i%5,row=Math.floor(i/5),cx=mx+bw*(col+.5),cy=my+bh*(row+.5);
+    ctx.font='700 25px Georgia,serif';ctx.fillText(String(i+1),cx,cy-53);
+    const z=fit(name,bw-28);ctx.font=`700 ${z}px Georgia,serif`;
+    const lines=wrap(name,bw-28),lh=z*1.12;
+    lines.forEach((t,j)=>ctx.fillText(t,cx,cy+6+(j-(lines.length-1)/2)*lh));
+  });
+
+  $('preview').style.display='block';$('save').disabled=false;
+  $('status').textContent=`Generated: ${home} (top) vs ${away} (left).`;
+}
+$('generate').addEventListener('click',draw);
+$('clear').addEventListener('click',()=>{
+  ['home','away','topnums','leftnums','names'].forEach(id=>$(id).value='');
+  $('preview').style.display='none';$('save').disabled=true;$('status').textContent='Board cleared.';
+});
+$('save').addEventListener('click',()=>{
+  c.toBlob(blob=>{
+    if(!blob)return;
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;
+    a.download=(($('home').value||'home')+'-vs-'+($('away').value||'away')+'-board.png').replace(/\s+/g,'-');
+    document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  },'image/png');
+});
+</script>
+</body>
+</html>
