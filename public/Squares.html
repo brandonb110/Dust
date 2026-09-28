@@ -19,6 +19,9 @@
   button{border:0;border-radius:10px;padding:13px 18px;font-size:16px;font-weight:700;cursor:pointer}
   #generate{background:#1769e0;color:#fff}
   #save{background:#111;color:#fff}
+  .savearea{display:none;background:#fff;margin-top:18px;border-radius:14px;padding:12px}
+  .savearea p{margin:0 0 10px;font-size:14px;font-weight:700}
+  .savearea img{display:block;width:100%;height:auto;border:1px solid var(--border);border-radius:10px}
   #clear{background:#e9e9eb}
   button:disabled{opacity:.4;cursor:not-allowed}
   #status{font-size:14px;color:#666;margin:12px 0 0}
@@ -44,13 +47,17 @@
     </label>
     <div class="buttons">
       <button id="generate" type="button">Generate Board</button>
-      <button id="save" type="button" disabled>Save Image</button>
+      <button id="save" type="button" disabled>Show Savable Image</button>
       <button id="clear" type="button">Clear</button>
     </div>
     <p id="status">Enter the board information. Grid dimensions are permanently fixed.</p>
   </section>
   <section id="preview" class="preview">
     <canvas id="board" width="1600" height="1300"></canvas>
+  </section>
+  <section id="savearea" class="savearea">
+    <p>Press and hold the image below, then choose Save to Photos.</p>
+    <img id="savedimg" alt="Football squares board">
   </section>
 </main>
 <script>
@@ -110,22 +117,19 @@ function draw(){
   });
 
   $('preview').style.display='block';$('save').disabled=false;
+  $('savearea').style.display='none';
   $('status').textContent=`Generated: ${home} (top) vs ${away} (left).`;
 }
 $('generate').addEventListener('click',draw);
 $('clear').addEventListener('click',()=>{
   ['home','away','topnums','leftnums','names'].forEach(id=>$(id).value='');
-  $('preview').style.display='none';$('save').disabled=true;$('status').textContent='Board cleared.';
+  $('preview').style.display='none';$('savearea').style.display='none';$('save').disabled=true;$('status').textContent='Board cleared.';
 });
 $('save').addEventListener('click',()=>{
-  c.toBlob(blob=>{
-    if(!blob)return;
-    const url=URL.createObjectURL(blob),a=document.createElement('a');
-    a.href=url;
-    a.download=(($('home').value||'home')+'-vs-'+($('away').value||'away')+'-board.png').replace(/\s+/g,'-');
-    document.body.appendChild(a);a.click();a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url),1500);
-  },'image/png');
+  $('savedimg').src=c.toDataURL('image/png');
+  $('savearea').style.display='block';
+  $('status').textContent='Savable image ready below. Press and hold it, then choose Save to Photos.';
+  $('savearea').scrollIntoView({behavior:'smooth',block:'start'});
 });
 </script>
 </body>
